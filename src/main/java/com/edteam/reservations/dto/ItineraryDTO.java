@@ -1,8 +1,12 @@
 package com.edteam.reservations.dto;
 
+import jakarta.validation.Valid;
+
 import java.util.List;
 
 public class ItineraryDTO {
+
+    @Valid
     private List<SegmentDTO> segment;
 
     private PriceDTO price;

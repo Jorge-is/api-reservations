@@ -1,9 +1,13 @@
 package com.edteam.reservations.dto;
 
+import com.edteam.reservations.validation.CityFormatConstraint;
+
 public class SegmentDTO {
 
+    @CityFormatConstraint
     private String origin;
 
+    @CityFormatConstraint
     private String destination;
 
     private String departure;

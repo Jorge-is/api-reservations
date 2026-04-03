@@ -1,16 +1,23 @@
 package com.edteam.reservations.dto;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Past;
+
 import java.time.LocalDate;
 
 public class PassengerDTO {
 
+    @NotBlank(message = "First name is mandatory.")
     private String firstName;
+
+    @NotBlank(message = "Last name is mandatory.")
     private String lastName;
 
     private String documentNumber;
 
     private String documentType;
 
+    @Past(message = "Birthday need to be a date in the past.")
     private LocalDate birthday;
 
     public String getFirstName() {
