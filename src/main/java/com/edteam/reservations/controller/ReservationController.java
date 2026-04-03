@@ -1,9 +1,12 @@
 package com.edteam.reservations.controller;
 
-import com.edteam.reservations.dto.PassengerDTO;
+import com.edteam.reservations.controller.resource.ReservationResource;
 import com.edteam.reservations.dto.ReservationDTO;
+import com.edteam.reservations.enums.APIError;
 import com.edteam.reservations.exception.ReservationException;
 import com.edteam.reservations.service.ReservationService;
+import io.github.resilience4j.ratelimiter.RequestNotPermitted;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,11 +17,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Validated
 @RestController
 @RequestMapping("/reservation")
-public class ReservationController {
-
+@Validated
+public class ReservationController implements ReservationResource {
     private ReservationService service;
 
     @Autowired
@@ -34,7 +36,7 @@ public class ReservationController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ReservationDTO> getReservationById(@PathVariable Long id) {
+    public ResponseEntity<ReservationDTO> getReservationById(@Min(1) @PathVariable Long id) {
         ReservationDTO response = service.getReservationById(id);
 
         return new ResponseEntity<>(response, HttpStatus.OK);
@@ -42,14 +44,14 @@ public class ReservationController {
 
     @PostMapping
     @RateLimiter(name = "post-reservation", fallbackMethod = "fallbackPost")
-    public ResponseEntity<ReservationDTO> save(@Valid @RequestBody ReservationDTO reservation) {
+    public ResponseEntity<ReservationDTO> save(@RequestBody @Valid ReservationDTO reservation) {
         ReservationDTO response = service.save(reservation);
 
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ReservationDTO> update(@Min(1) @PathVariable Long id, @RequestBody ReservationDTO reservation) {
+    public ResponseEntity<ReservationDTO> update(@Min(1) @PathVariable Long id, @RequestBody @Valid ReservationDTO reservation) {
         ReservationDTO response = service.update(id, reservation);
 
         return new ResponseEntity<>(response, HttpStatus.OK);
@@ -63,8 +65,8 @@ public class ReservationController {
     }
 
     private ResponseEntity<ReservationDTO> fallbackPost(ReservationDTO reservation, RequestNotPermitted ex) {
-        System.out.println("calling to fallbackPost");
+        System.out.println("Calling to fallbackPost");
 
-        throw new ;
+        throw new ReservationException(APIError.EXCEED_NUMBER_OPERATIONS);
     }
 }
