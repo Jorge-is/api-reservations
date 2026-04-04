@@ -1,5 +1,12 @@
 version: '3.1'
 services:
+  api-reservations:
+    image: adschosen/api-reservations:1.0.0
+    container_name: api-reservations
+    ports:
+      - 8080:8080
+    restart: always
+
   api-catalog:
     image: adschosen/api-catalog:1.1.0
     container_name: api-catalog
