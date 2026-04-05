@@ -3,7 +3,7 @@ package com.edteam.reservations.validation;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
-public class CityFormatValidator implements ConstraintValidator <CityFormatConstraint, String> {
+public class CityFormatValidator implements ConstraintValidator<CityFormatConstraint, String> {
 
     @Override
     public void initialize(CityFormatConstraint constraintAnnotation) {
