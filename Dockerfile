@@ -1,10 +1,10 @@
-FROM openjdk:17-alpine AS builder
+FROM eclipse-temurin:17-jdk-alpine AS builder
 WORKDIR workspace
 ARG JAR_FILE=target/*.jar
 COPY ${JAR_FILE} api-reservations.jar
 RUN java -Djarmode=layertools -jar api-reservations.jar extract
 
-FROM openjdk:17-alpine
+FROM eclipse-temurin:17-jdk-alpine
 WORKDIR workspace
 COPY --from=builder workspace/dependencies/ ./
 COPY --from=builder workspace/spring-boot-loader/ ./
