@@ -8,6 +8,8 @@ import com.edteam.reservations.enums.APIError;
 import com.edteam.reservations.exception.ReservationException;
 import com.edteam.reservations.model.Reservation;
 import com.edteam.reservations.repository.ReservationRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.stereotype.Service;
@@ -19,17 +21,20 @@ import java.util.Optional;
 @Service
 public class ReservationService {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(ReservationService.class);
+
     private ReservationRepository repository;
 
     private ConversionService conversionService;
 
-    private CatalogConnector connector;
+    private CatalogConnector catalogConnector;
 
     @Autowired
-    public ReservationService(ReservationRepository repository, ConversionService conversionService, CatalogConnector connector) {
+    public ReservationService(ReservationRepository repository, ConversionService conversionService,
+            CatalogConnector catalogConnector) {
         this.repository = repository;
         this.conversionService = conversionService;
-        this.connector = connector;
+        this.catalogConnector = catalogConnector;
     }
 
     public List<ReservationDTO> getReservations() {
@@ -39,6 +44,7 @@ public class ReservationService {
     public ReservationDTO getReservationById(Long id) {
         Optional<Reservation> result = repository.getReservationById(id);
         if (result.isEmpty()) {
+            LOGGER.debug("Not exist reservation with the id {}", id);
             throw new ReservationException(APIError.RESERVATION_NOT_FOUND);
         }
 
@@ -49,8 +55,8 @@ public class ReservationService {
         if (Objects.nonNull(reservation.getId())) {
             throw new ReservationException(APIError.RESERVATION_WITH_SAME_ID);
         }
-
         checkCity(reservation);
+
         Reservation transformed = conversionService.convert(reservation, Reservation.class);
         Reservation result = repository.save(Objects.requireNonNull(transformed));
         return conversionService.convert(result, ReservationDTO.class);
@@ -58,6 +64,7 @@ public class ReservationService {
 
     public ReservationDTO update(Long id, ReservationDTO reservation) {
         if (getReservationById(id) == null) {
+            LOGGER.debug("Not exist reservation with the id {}", id);
             throw new ReservationException(APIError.RESERVATION_NOT_FOUND);
         }
 
@@ -69,6 +76,7 @@ public class ReservationService {
 
     public void delete(Long id) {
         if (getReservationById(id) == null) {
+            LOGGER.debug("Not exist reservation with the id {}", id);
             throw new ReservationException(APIError.RESERVATION_NOT_FOUND);
         }
 
@@ -77,14 +85,14 @@ public class ReservationService {
 
     private void checkCity(ReservationDTO reservationDTO) {
         for (SegmentDTO segmentDTO : reservationDTO.getItinerary().getSegment()) {
-            CityDTO origin = connector.getCity(segmentDTO.getOrigin());
-            CityDTO destination = connector.getCity(segmentDTO.getDestination());
+            CityDTO origin = catalogConnector.getCity(segmentDTO.getOrigin());
+            CityDTO destination = catalogConnector.getCity(segmentDTO.getDestination());
 
             if (origin == null || destination == null) {
                 throw new ReservationException(APIError.VALIDATION_ERROR);
             } else {
-                System.out.println(origin.getName());
-                System.out.println(destination.getName());
+                LOGGER.debug(origin.getName());
+                LOGGER.debug(destination.getName());
             }
         }
     }

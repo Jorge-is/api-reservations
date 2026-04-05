@@ -25,7 +25,7 @@ import java.util.List;
 public class ReservationController implements ReservationResource {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ReservationController.class);
-    private ReservationService service;
+    private final ReservationService service;
 
     @Autowired
     public ReservationController(ReservationService service) {
@@ -58,7 +58,8 @@ public class ReservationController implements ReservationResource {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ReservationDTO> update(@Min(1) @PathVariable Long id, @RequestBody @Valid ReservationDTO reservation) {
+    public ResponseEntity<ReservationDTO> update(@Min(1) @PathVariable Long id,
+            @RequestBody @Valid ReservationDTO reservation) {
         LOGGER.info("Updating a reservation with {}", id);
         ReservationDTO response = service.update(id, reservation);
 
