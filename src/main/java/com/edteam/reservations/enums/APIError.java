@@ -12,7 +12,7 @@ public enum APIError {
     private final HttpStatus httpStatus;
     private final String message;
 
-    APIError(HttpStatus httpStatus, String message){
+    APIError(HttpStatus httpStatus, String message) {
         this.httpStatus = httpStatus;
         this.message = message;
     }
