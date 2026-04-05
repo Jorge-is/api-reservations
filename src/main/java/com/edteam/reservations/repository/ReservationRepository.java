@@ -71,9 +71,7 @@ public class ReservationRepository {
     }
 
     public Reservation update(Long id, Reservation reservation) {
-        List<Reservation> result = reservations.stream()
-                .filter(reser -> reser.getId().equals(id))
-                .toList();
+        List<Reservation> result = reservations.stream().filter(reser -> reser.getId().equals(id)).toList();
         result.get(0).setId(reservation.getId());
         result.get(0).setItinerary(reservation.getItinerary());
         result.get(0).setPassengers(reservation.getPassengers());
@@ -82,9 +80,7 @@ public class ReservationRepository {
     }
 
     public void delete(Long id) {
-        List<Reservation> result = reservations.stream()
-                .filter(reservation -> reservation.getId().equals(id))
-                .toList();
+        List<Reservation> result = reservations.stream().filter(reservation -> reservation.getId().equals(id)).toList();
 
         reservations.remove(result.get(0));
     }
