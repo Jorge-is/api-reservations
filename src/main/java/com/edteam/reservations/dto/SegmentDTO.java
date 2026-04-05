@@ -1,6 +1,7 @@
 package com.edteam.reservations.dto;
 
 import com.edteam.reservations.validation.CityFormatConstraint;
+import jakarta.validation.constraints.NotBlank;
 
 public class SegmentDTO {
 
@@ -10,10 +11,13 @@ public class SegmentDTO {
     @CityFormatConstraint
     private String destination;
 
+    @NotBlank(message = "Departure is mandatory")
     private String departure;
 
+    @NotBlank(message = "Arrival is mandatory")
     private String arrival;
 
+    @NotBlank(message = "Carrier is mandatory")
     private String carrier;
 
     public String getOrigin() {

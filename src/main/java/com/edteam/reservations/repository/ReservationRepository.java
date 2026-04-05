@@ -56,11 +56,10 @@ public class ReservationRepository {
     }
 
     public Optional<Reservation> getReservationById(Long id) {
-        List<Reservation> result = reservations.stream()
-                .filter(reservation -> Objects.equals(reservation.getId(), id))
+        List<Reservation> result = reservations.stream().filter(reservation -> Objects.equals(reservation.getId(), id))
                 .toList();
 
-        Reservation reservation = !result.isEmpty() ? result.get(0): null;
+        Reservation reservation = !result.isEmpty() ? result.get(0) : null;
         return Optional.ofNullable(reservation);
     }
 
