@@ -1,0 +1,14 @@
+spring:
+  flyway:
+    enabled: false
+  jpa:
+    hibernate:
+      ddl-auto: none
+
+jwt:
+  secret: dGVzdFNlY3JldEtleUZvclRlc3RpbmdPbmx5UHVycG9zZXMh
+
+auth:
+  demo:
+    username: admin
+    password: admin123
