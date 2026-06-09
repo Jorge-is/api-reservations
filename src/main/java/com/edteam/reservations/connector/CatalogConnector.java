@@ -11,9 +11,9 @@ import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
@@ -28,49 +28,45 @@ public class CatalogConnector {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CatalogConnector.class);
 
-    private final String HOST = "api-catalog";
+    private static final String HOST = "api-catalog";
+    private static final String ENDPOINT = "get-city";
 
-    private final String ENDPOINT = "get-city";
+    private final HttpConnectorConfiguration configuration;
+    private WebClient webClient;
 
-    private HttpConnectorConfiguration configuration;
-
-    @Autowired
     public CatalogConnector(HttpConnectorConfiguration configuration) {
         this.configuration = configuration;
     }
 
-    @CircuitBreaker(name = "api-catalog", fallbackMethod = "fallbackGetCity")
-    public CityDTO getCity(String code) {
-
-        LOGGER.info("Calling to api-catalog");
-
-        HostConfiguration hostConfiguration = configuration.getHosts().get(HOST);
-        EndpointConfiguration endpointConfiguration = hostConfiguration.getEndpoints().get(ENDPOINT);
+    @PostConstruct
+    void initWebClient() {
+        HostConfiguration hostConfig = configuration.getHosts().get(HOST);
+        EndpointConfiguration endpointConfig = hostConfig.getEndpoints().get(ENDPOINT);
 
         HttpClient httpClient = HttpClient.create()
-                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS,
-                        Math.toIntExact(endpointConfiguration.getConnectionTimeout()))
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, Math.toIntExact(endpointConfig.getConnectionTimeout()))
                 .doOnConnected(conn -> conn
-                        .addHandler(
-                                new ReadTimeoutHandler(endpointConfiguration.getReadTimeout(), TimeUnit.MILLISECONDS))
-                        .addHandler(new WriteTimeoutHandler(endpointConfiguration.getWriteTimeout(),
-                                TimeUnit.MILLISECONDS)));
+                        .addHandler(new ReadTimeoutHandler(endpointConfig.getReadTimeout(), TimeUnit.MILLISECONDS))
+                        .addHandler(new WriteTimeoutHandler(endpointConfig.getWriteTimeout(), TimeUnit.MILLISECONDS)));
 
-        WebClient client = WebClient.builder()
-                .baseUrl("http://" + hostConfiguration.getHost() + ":" + hostConfiguration.getPort()
-                        + endpointConfiguration.getUrl())
+        this.webClient = WebClient.builder()
+                .baseUrl("http://" + hostConfig.getHost() + ":" + hostConfig.getPort() + endpointConfig.getUrl())
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                 .clientConnector(new ReactorClientHttpConnector(httpClient)).build();
+    }
 
-        return client.get().uri(urlEncoder -> urlEncoder.build(code)).retrieve().bodyToMono(CityDTO.class).share()
+    @CircuitBreaker(name = "api-catalog", fallbackMethod = "fallbackGetCity")
+    public CityDTO getCity(String code) {
+        LOGGER.info("Calling to api-catalog");
+        return webClient.get().uri(urlEncoder -> urlEncoder.build(code)).retrieve().bodyToMono(CityDTO.class).share()
                 .block();
     }
 
     public CityDTO fallbackGetCity(String code, CallNotPermittedException ex) {
         LOGGER.debug("calling to fallbackGetCity-1");
 
-        return new CityDTO();
+        throw new ReservationException(APIError.CITY_NOT_FOUND);
     }
 
     public CityDTO fallbackGetCity(String code, Exception ex) {
