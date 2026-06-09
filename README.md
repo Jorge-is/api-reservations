@@ -1,113 +1,366 @@
-# API Reservations
+# api-reservations
 
-![Java](https://img.shields.io/badge/Java-17-blue.svg)
-![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.1.3-brightgreen.svg)
-![Docker](https://img.shields.io/badge/Docker-Enabled-blue.svg)
+API RESTful orientada a producción para la gestión de reservas de vuelos, construida con Java 17 y Spring Boot 3. Diseñada con arquitectura en capas, autenticación JWT, patrones de resiliencia, versionado de esquema de base de datos y documentación OpenAPI completa.
 
-API RESTful para la gestión de reservas, construida con Java 17 y Spring Boot. El proyecto incluye integración con sistemas externos (API Catalog), resiliencia con Resilience4j, y está preparado para ser desplegado mediante Docker.
+![Java](https://img.shields.io/badge/Java-17-blue?logo=openjdk)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.1.3-brightgreen?logo=springboot)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue?logo=postgresql)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker)
+![License](https://img.shields.io/badge/license-MIT-green)
 
-## 🚀 Tecnologías Usadas
-- **Java 17**
-- **Spring Boot 3.1.3** (Web, Actuator, Validation, AOP)
-- **MapStruct** para mapeo de DTOs.
-- **Resilience4j** (Circuit Breaker y Rate Limiter).
-- **Springdoc OpenAPI (Swagger)** para la documentación de la API.
-- **Docker & Docker Compose**
+---
 
-## 🏗️ Arquitectura y Estructura
-El proyecto sigue una arquitectura en capas tradicional, asegurando separación de responsabilidades:
-- `controller`: Expone los endpoints REST.
-- `service`: Contiene la lógica de negocio.
-- `repository`: Gestiona el acceso a los datos.
-- `connector`: Comunicación con otras APIs (`api-catalog`).
-- `exception`: Manejo centralizado de excepciones con `@RestControllerAdvice`.
+## Tabla de contenidos
 
-## ⚙️ Instalación y Ejecución
+- [Descripción general](#descripción-general)
+- [Características](#características)
+- [Stack tecnológico](#stack-tecnológico)
+- [Arquitectura](#arquitectura)
+- [Estructura del proyecto](#estructura-del-proyecto)
+- [Primeros pasos](#primeros-pasos)
+- [Variables de entorno](#variables-de-entorno)
+- [Autenticación](#autenticación)
+- [Referencia de la API](#referencia-de-la-api)
+- [Modelo de datos](#modelo-de-datos)
+- [Patrones de resiliencia](#patrones-de-resiliencia)
+- [Ejecución de tests](#ejecución-de-tests)
 
-### Ejecución Local (sin Docker)
-1. Clonar el repositorio.
-2. Contar con **Java 17** y **Maven** instalados localmente.
-3. Ejecutar el proyecto usando Maven:
-   ```bash
-   ./mvnw spring-boot:run
-   ```
-La aplicación se levantará en `http://localhost:8080`.
+---
 
-### Ejecución con Docker y Docker Compose
-La aplicación está configurada para ejecutarse a través de contenedores. Para levantar toda la infraestructura:
+## Descripción general
 
-1. Compila el archivo `.jar` localmente:
-   ```bash
-   ./mvnw clean package -DskipTests
-   ```
-2. Construye la imagen de Docker de la API de reservaciones:
-   ```bash
-   docker build -t jorgeafais/api-reservations:1.0.0 .
-   ```
-3. *(Obligatorio)* Recuerda que este proyecto depende de `api-catalog`. Asegúrate de tener la imagen `jorgeafais/api-catalog:1.1.0` construida en tu máquina local o accesible en Docker Hub.
-4. Levanta los contenedores:
-   ```bash
-   docker-compose up -d
-   ```
+`api-reservations` gestiona el ciclo de vida completo de una reserva de vuelo: creación, consulta, actualización y eliminación. Cada reserva está compuesta por uno o más pasajeros y un itinerario que contiene segmentos de vuelo con su información de precios.
 
-## 🛠️ Variables de Entorno y Configuración
-El archivo `application.yml` y `application-docker.yml` manejan la configuración base.
-Para entornos de Docker, se sobrescribe la conexión al catálogo externo bajo el host `api-catalog`.
+El servicio se integra con una API externa (`api-catalog`) para validar que los códigos de ciudad de origen y destino sean ubicaciones IATA reales antes de persistir cualquier reserva.
 
-| Variable / Properties | Descripción | Valor por defecto |
-| :--- | :--- | :--- |
-| `server.port` | Puerto donde corre la aplicación | `8080` |
-| `http-connector.hosts.api-catalog.host` | Host del microservicio de catálogo | `localhost` (local) / `api-catalog` (docker) |
-| `http-connector.hosts.api-catalog.port` | Puerto de catálogo | `6070` |
+---
 
-## 📚 Endpoints Principales
+## Características
 
-Puedes acceder a la UI de Swagger (una vez levantada la app de manera local en modo openapi) para explorar todos los endpoints:
-> `http://localhost:8080/api/v3/api-docs`
+- CRUD completo de reservas de vuelos
+- Autenticación stateless con JWT
+- Validación de entrada con Jakarta Validation y un validador personalizado de códigos de ciudad IATA
+- Listado paginado de reservas
+- Circuit Breaker sobre las llamadas al catálogo externo (Resilience4j)
+- Rate Limiting en la creación de reservas (2 requests / 3 segundos)
+- Manejo centralizado de errores con respuestas JSON estructuradas
+- Versionado del esquema de base de datos con Flyway
+- Documentación OpenAPI 3 a través de Swagger UI
+- Configuración lista para Docker Compose
 
-A continuación, la lista de los endpoints principales (con url base `/api/reservation`):
+---
 
-| Método | Endpoint | Descripción |
-| :--- | :--- | :--- |
-| `GET` | `/` | Lista todas las reservaciones. |
-| `GET` | `/{id}` | Obtiene una reservación por su ID. |
-| `POST` | `/` | Crea una nueva reservación. (Sujeta a Rate Limiting: 2 req/3s) |
-| `PUT` | `/{id}` | Actualiza una reservación existente. |
-| `DELETE` | `/{id}` | Elimina una reservación por su ID. |
-| `GET` | `/actuator/health` | Verifica el estado del servicio de API. |
+## Stack tecnológico
 
-### Ejemplo de Uso (Crear Reservación)
+| Capa | Tecnología |
+|------|------------|
+| Lenguaje | Java 17 |
+| Framework | Spring Boot 3.1.3 |
+| Persistencia | Spring Data JPA · PostgreSQL 15 · Flyway |
+| Seguridad | Spring Security · JJWT 0.11.5 |
+| Resiliencia | Resilience4j (Circuit Breaker, Rate Limiter) |
+| Cliente HTTP | Spring WebFlux WebClient |
+| Mapeo | MapStruct 1.5.5 |
+| Documentación | SpringDoc OpenAPI 2 (Swagger UI) |
+| Testing | JUnit 5 · Mockito · Spring Security Test |
+| Build | Maven |
+| Contenedores | Docker · Docker Compose |
+
+---
+
+## Arquitectura
+
+El proyecto sigue una **arquitectura en capas** con separación clara de responsabilidades:
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                     Capa Controller                       │
+│       Endpoints REST · validación de entrada              │
+│          rate limiting · documentación OpenAPI            │
+├──────────────────────────────────────────────────────────┤
+│                      Capa Service                         │
+│       Lógica de negocio · validación de ciudades          │
+│              gestión de transacciones                     │
+├──────────────────────────────────────────────────────────┤
+│                    Capa Repository                        │
+│              Spring Data JPA · PostgreSQL                 │
+├───────────────────────────┬──────────────────────────────┤
+│        Capa Mapper        │       Capa Connector          │
+│   Conversores MapStruct   │  WebClient · Circuit Breaker  │
+│   Mapeo DTO ↔ Entidad     │  Integración con api-catalog  │
+└───────────────────────────┴──────────────────────────────┘
+```
+
+**Aspectos transversales:** Spring Security (cadena de filtros JWT), `@RestControllerAdvice` para el manejo global de excepciones, y AOP de Resilience4j para las anotaciones de resiliencia.
+
+---
+
+## Estructura del proyecto
+
+```
+src/
+└── main/
+    ├── java/com/edteam/reservations/
+    │   ├── controller/          # Controladores REST
+    │   │   └── resource/        # ReservationResource (contrato OpenAPI)
+    │   ├── service/             # Lógica de negocio
+    │   ├── repository/          # Repositorios Spring Data JPA
+    │   ├── model/               # Entidades JPA
+    │   ├── dto/                 # DTOs de request y response
+    │   ├── mapper/              # Conversores MapStruct (DTO ↔ Entidad)
+    │   ├── connector/           # Integración WebClient con api-catalog
+    │   │   ├── configuration/   # Propiedades de host y endpoint
+    │   │   └── response/        # DTOs de respuesta de la API externa
+    │   ├── security/            # Filtro JWT, JwtUtil, SecurityConfig
+    │   ├── exception/           # ReservationException, APIExceptionHandler
+    │   ├── enums/               # APIError (catálogo de estados y mensajes)
+    │   └── validation/          # @CityFormatConstraint (códigos IATA)
+    └── resources/
+        ├── application.yml          # Configuración local
+        ├── application-docker.yml   # Configuración Docker / producción
+        └── db/migration/            # Migraciones SQL de Flyway
+```
+
+---
+
+## Primeros pasos
+
+### Requisitos previos
+
+- Java 17+
+- Maven 3.8+
+- Docker (para la base de datos y, opcionalmente, el servicio de catálogo)
+
+### Opción 1 — Ejecución local (recomendada para desarrollo)
+
+**1. Levantar la base de datos PostgreSQL:**
+
 ```bash
-curl -X POST http://localhost:8080/api/reservation \
--H "Content-Type: application/json" \
--d '{
+docker run -d \
+  --name api-reservations-db \
+  -e POSTGRES_DB=flights_reservations \
+  -e POSTGRES_USER=myuser \
+  -e POSTGRES_PASSWORD=mypassword \
+  -p 5432:5432 \
+  postgres:15
+```
+
+**2. Levantar el mock del catálogo** (necesario para crear y actualizar reservas):
+
+```bash
+python mock-catalog.py
+```
+
+> `mock-catalog.py` está incluido en la raíz del repositorio. Levanta un servidor HTTP liviano en el puerto `6070` que responde con datos válidos para cualquier código de ciudad IATA.
+
+**3. Ejecutar la aplicación:**
+
+```bash
+./mvnw spring-boot:run
+```
+
+La API estará disponible en `http://localhost:8080/api/v1`.
+
+---
+
+### Opción 2 — Ejecución con Docker Compose
+
+Primero compilar y construir la imagen:
+
+```bash
+./mvnw clean package -DskipTests
+docker build -t jorgeafais/api-reservations:1.0.0 .
+```
+
+Luego levantar todos los servicios:
+
+```bash
+docker-compose up -d
+```
+
+> El compose inicia `api-reservations`, `api-reservations-db` (PostgreSQL), `api-catalog` y `api-catalog-db` (MySQL). Todas las credenciales se gestionan mediante variables de entorno con valores por defecto.
+
+---
+
+## Variables de entorno
+
+Todos los valores sensibles están externalizados. Se proveen defaults para desarrollo local.
+
+| Variable | Descripción | Valor por defecto |
+|----------|-------------|-------------------|
+| `DB_USERNAME` | Usuario de PostgreSQL | `myuser` |
+| `DB_PASSWORD` | Contraseña de PostgreSQL | `mypassword` |
+| `JWT_SECRET` | Clave HS256 codificada en Base64 (mín. 32 bytes) | *(valor demo — reemplazar en producción)* |
+| `AUTH_USERNAME` | Usuario de login | `admin` |
+| `AUTH_PASSWORD` | Contraseña de login | `admin123` |
+
+> En producción, siempre reemplazar `JWT_SECRET`, `DB_USERNAME` y `DB_PASSWORD` con valores reales. Nunca usar los defaults.
+
+---
+
+## Autenticación
+
+La API utiliza **autenticación JWT stateless**. Todos los endpoints salvo `/auth/token`, la UI de Swagger y el health de Actuator requieren un token `Bearer` válido.
+
+### 1. Obtener el token
+
+```bash
+curl -X POST http://localhost:8080/api/v1/auth/token \
+  -H "Content-Type: application/json" \
+  -d '{"username": "admin", "password": "admin123"}'
+```
+
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiJ9..."
+}
+```
+
+### 2. Usar el token
+
+Incluirlo como `Bearer` token en cada request:
+
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
+```
+
+Los tokens tienen una validez de **24 horas**.
+
+---
+
+## Referencia de la API
+
+**URL base:** `http://localhost:8080/api/v1`
+
+La documentación interactiva está disponible en `/api/v1/swagger-ui.html` con la aplicación en ejecución.
+
+### Reservas
+
+| Método | Endpoint | Auth | Descripción | Estado |
+|--------|----------|------|-------------|--------|
+| `GET` | `/reservation` | ✓ | Listar todas las reservas (paginado) | `200` |
+| `GET` | `/reservation/{id}` | ✓ | Obtener una reserva por ID | `200` / `404` |
+| `POST` | `/reservation` | ✓ | Crear una nueva reserva | `201` / `400` |
+| `PUT` | `/reservation/{id}` | ✓ | Actualizar una reserva existente | `200` / `404` |
+| `DELETE` | `/reservation/{id}` | ✓ | Eliminar una reserva | `204` / `404` |
+
+> `POST /reservation` está limitado a **2 requests cada 3 segundos**. Superar ese límite retorna `429 Too Many Requests`.
+
+### Autenticación
+
+| Método | Endpoint | Auth | Descripción |
+|--------|----------|------|-------------|
+| `POST` | `/auth/token` | — | Obtener un token JWT |
+
+### Paginación
+
+`GET /reservation` acepta los parámetros estándar de paginación de Spring:
+
+```
+GET /reservation?page=0&size=10&sort=id,asc
+```
+
+### Respuestas de error
+
+Todos los errores siguen una estructura consistente:
+
+```json
+{
+  "description": "There are attributes with wrong values",
+  "reasons": [
+    "firstName - First name is mandatory.",
+    "origin - Invalid format of the city."
+  ]
+}
+```
+
+---
+
+## Modelo de datos
+
+### Body de creación / actualización de reserva
+
+```json
+{
   "passengers": [
     {
       "firstName": "Jorge",
       "lastName": "Flores",
       "documentType": "DNI",
       "documentNumber": "12345678",
-      "birthday": "1999-05-01"
+      "birthday": "1990-05-15"
     }
   ],
   "itinerary": {
-    "segment": [
+    "segments": [
       {
-        "origin": "BUE",
-        "destination": "MIA",
-        "departure": "2024-12-31",
-        "arrival": "2025-01-01",
-        "carrier": "AA"
+        "origin": "MAD",
+        "destination": "EZE",
+        "departure": "2024-12-01T10:00:00",
+        "arrival": "2024-12-01T22:00:00",
+        "carrier": "IB"
       }
     ],
     "price": {
-      "basePrice": 100.0,
-      "totalTax": 20.0,
-      "totalPrice": 120.0
+      "basePrice": 500.00,
+      "totalTax": 100.00,
+      "totalPrice": 600.00
     }
   }
-}'
+}
 ```
 
+### Reglas de validación
+
+| Campo | Restricción |
+|-------|-------------|
+| `passengers` | Al menos uno requerido |
+| `firstName` / `lastName` | No puede estar en blanco |
+| `birthday` | Debe ser una fecha en el pasado |
+| `origin` / `destination` | Exactamente 3 letras mayúsculas (código IATA) |
+| `departure` / `arrival` / `carrier` | No puede estar en blanco |
+
+> Los códigos de ciudad también se validan en tiempo de ejecución contra el servicio `api-catalog`. Códigos desconocidos retornan `404 City origin or destination not found`.
+
 ---
-**Nota sobre resiliencia**: La creación de reservas tiene un *Rate Limiter* implementado. Si excedes el límite (2 llamadas concurrentes en 3 segundos), el servicio te responderá con una excepción custom gestionada por `@ControllerAdvice`.
+
+## Patrones de resiliencia
+
+### Circuit Breaker — integración con `api-catalog`
+
+Configurado sobre `CatalogConnector.getCity()`. Evita fallos en cascada cuando el servicio de catálogo no está disponible.
+
+| Parámetro | Valor |
+|-----------|-------|
+| Umbral de tasa de fallo | 50% |
+| Tamaño de ventana deslizante | 5 llamadas |
+| Tiempo de espera en estado abierto | 10 segundos |
+| Transición a semi-abierto | Automática |
+
+Cuando el circuito está abierto, todos los requests `POST` y `PUT` retornan inmediatamente `404 City origin or destination not found`.
+
+### Rate Limiter — `POST /reservation`
+
+| Parámetro | Valor |
+|-----------|-------|
+| Límite por período | 2 requests |
+| Período de refresco | 3 segundos |
+| Duración de timeout | 1 segundo |
+
+Los requests que superan el límite retornan `429 Too Many Requests`.
+
+---
+
+## Ejecución de tests
+
+```bash
+./mvnw test
+```
+
+La suite de tests incluye:
+
+| Clase | Tipo | Cobertura |
+|-------|------|-----------|
+| `ReservationServiceTest` | Unitario (Mockito) | Lógica de negocio, validación de ciudades, caminos de excepción |
+| `ReservationControllerTest` | Integración (`@WebMvcTest`) | Capa HTTP, seguridad, códigos de estado |
+| `CityFormatValidatorTest` | Unitario | Reglas de validación de códigos IATA |
