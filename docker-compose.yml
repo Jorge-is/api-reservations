@@ -6,6 +6,26 @@ services:
     ports:
       - 8080:8080
     restart: always
+    depends_on:
+      - api-reservations-db
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_USERNAME: ${DB_USERNAME:-myuser}
+      DB_PASSWORD: ${DB_PASSWORD:-mypassword}
+      JWT_SECRET: ${JWT_SECRET:-YXBpLXJlc2VydmF0aW9ucy1kZW1vLWp3dC1zZWNyZXQta2V5LTI1NmJpdA==}
+      AUTH_USERNAME: ${AUTH_USERNAME:-admin}
+      AUTH_PASSWORD: ${AUTH_PASSWORD:-admin123}
+
+  api-reservations-db:
+    container_name: api-reservations-db
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_DB: flights_reservations
+      POSTGRES_USER: ${DB_USERNAME:-myuser}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-mypassword}
+    ports:
+      - 5432:5432
 
   api-catalog:
     image: jorgeafais/api-catalog:1.1.0
@@ -13,7 +33,7 @@ services:
     ports:
       - 6070:6070
     restart: always
-    links:
+    depends_on:
       - api-catalog-db
 
   api-catalog-db:
