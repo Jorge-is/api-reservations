@@ -7,16 +7,16 @@ import java.util.List;
 public class ItineraryDTO {
 
     @Valid
-    private List<SegmentDTO> segment;
+    private List<SegmentDTO> segments;
 
     private PriceDTO price;
 
-    public List<SegmentDTO> getSegment() {
-        return segment;
+    public List<SegmentDTO> getSegments() {
+        return segments;
     }
 
-    public void setSegment(List<SegmentDTO> segment) {
-        this.segment = segment;
+    public void setSegments(List<SegmentDTO> segments) {
+        this.segments = segments;
     }
 
     public PriceDTO getPrice() {

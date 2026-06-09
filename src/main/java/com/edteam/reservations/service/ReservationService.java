@@ -10,11 +10,12 @@ import com.edteam.reservations.model.Reservation;
 import com.edteam.reservations.repository.ReservationRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -29,7 +30,6 @@ public class ReservationService {
 
     private CatalogConnector catalogConnector;
 
-    @Autowired
     public ReservationService(ReservationRepository repository, ConversionService conversionService,
             CatalogConnector catalogConnector) {
         this.repository = repository;
@@ -37,12 +37,15 @@ public class ReservationService {
         this.catalogConnector = catalogConnector;
     }
 
-    public List<ReservationDTO> getReservations() {
-        return conversionService.convert(repository.getReservations(), List.class);
+    @Transactional(readOnly = true)
+    public Page<ReservationDTO> getReservations(Pageable pageable) {
+        return repository.findAll(pageable)
+                .map(reservation -> conversionService.convert(reservation, ReservationDTO.class));
     }
 
+    @Transactional(readOnly = true)
     public ReservationDTO getReservationById(Long id) {
-        Optional<Reservation> result = repository.getReservationById(id);
+        Optional<Reservation> result = repository.findById(id);
         if (result.isEmpty()) {
             LOGGER.debug("Not exist reservation with the id {}", id);
             throw new ReservationException(APIError.RESERVATION_NOT_FOUND);
@@ -51,6 +54,7 @@ public class ReservationService {
         return conversionService.convert(result.get(), ReservationDTO.class);
     }
 
+    @Transactional
     public ReservationDTO save(ReservationDTO reservation) {
         if (Objects.nonNull(reservation.getId())) {
             throw new ReservationException(APIError.RESERVATION_WITH_SAME_ID);
@@ -62,34 +66,30 @@ public class ReservationService {
         return conversionService.convert(result, ReservationDTO.class);
     }
 
+    @Transactional
     public ReservationDTO update(Long id, ReservationDTO reservation) {
-        if (getReservationById(id) == null) {
-            LOGGER.debug("Not exist reservation with the id {}", id);
-            throw new ReservationException(APIError.RESERVATION_NOT_FOUND);
-        }
+        getReservationById(id);
 
         checkCity(reservation);
         Reservation transformed = conversionService.convert(reservation, Reservation.class);
-        Reservation result = repository.update(id, Objects.requireNonNull(transformed));
+        transformed.setId(id);
+        Reservation result = repository.save(Objects.requireNonNull(transformed));
         return conversionService.convert(result, ReservationDTO.class);
     }
 
+    @Transactional
     public void delete(Long id) {
-        if (getReservationById(id) == null) {
-            LOGGER.debug("Not exist reservation with the id {}", id);
-            throw new ReservationException(APIError.RESERVATION_NOT_FOUND);
-        }
-
-        repository.delete(id);
+        getReservationById(id);
+        repository.deleteById(id);
     }
 
     private void checkCity(ReservationDTO reservationDTO) {
-        for (SegmentDTO segmentDTO : reservationDTO.getItinerary().getSegment()) {
+        for (SegmentDTO segmentDTO : reservationDTO.getItinerary().getSegments()) {
             CityDTO origin = catalogConnector.getCity(segmentDTO.getOrigin());
             CityDTO destination = catalogConnector.getCity(segmentDTO.getDestination());
 
-            if (origin == null || destination == null) {
-                throw new ReservationException(APIError.VALIDATION_ERROR);
+            if (origin == null || origin.getCode() == null || destination == null || destination.getCode() == null) {
+                throw new ReservationException(APIError.CITY_NOT_FOUND);
             } else {
                 LOGGER.debug(origin.getName());
                 LOGGER.debug(destination.getName());
