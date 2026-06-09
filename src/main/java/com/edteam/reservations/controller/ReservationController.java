@@ -11,13 +11,13 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @RestController
 @RequestMapping("/reservation")
@@ -27,15 +27,14 @@ public class ReservationController implements ReservationResource {
     private static final Logger LOGGER = LoggerFactory.getLogger(ReservationController.class);
     private final ReservationService service;
 
-    @Autowired
     public ReservationController(ReservationService service) {
         this.service = service;
     }
 
     @GetMapping
-    public ResponseEntity<List<ReservationDTO>> getReservations() {
+    public ResponseEntity<Page<ReservationDTO>> getReservations(Pageable pageable) {
         LOGGER.info("Obtain all the reservations");
-        List<ReservationDTO> response = service.getReservations();
+        Page<ReservationDTO> response = service.getReservations(pageable);
 
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
@@ -71,7 +70,7 @@ public class ReservationController implements ReservationResource {
         LOGGER.info("Deleting a reservation with {}", id);
         service.delete(id);
 
-        return new ResponseEntity<>(HttpStatus.OK);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     private ResponseEntity<ReservationDTO> fallbackPost(ReservationDTO reservation, RequestNotPermitted ex) {

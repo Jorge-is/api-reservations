@@ -17,15 +17,18 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springdoc.core.annotations.ParameterObject;
 import java.util.List;
 
 @Tag(name = "Reservation", description = "Operations about the reservation entity")
 public interface ReservationResource {
 
     @Operation(description = "Get the information of all the reservations", responses = {
-            @ApiResponse(responseCode = "200", description = "Return the information of all the reservations", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = List.class))),
+            @ApiResponse(responseCode = "200", description = "Return the information of all the reservations", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = Page.class))),
             @ApiResponse(responseCode = "500", description = "Something bad happens to obtain th reservations", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorDTO.class))), })
-    public ResponseEntity<List<ReservationDTO>> getReservations();
+    public ResponseEntity<Page<ReservationDTO>> getReservations(@ParameterObject Pageable pageable);
 
     @Operation(description = "Get the information about one reservation", responses = {
             @ApiResponse(responseCode = "200", description = "Return the information of one reservation", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ReservationDTO.class))),
