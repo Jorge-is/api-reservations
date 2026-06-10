@@ -18,7 +18,7 @@
 		<mapstruct.version>1.5.5.Final</mapstruct.version>
 		<resilience4j.version>2.1.0</resilience4j.version>
 		<springdoc-openapi-starter-webmvc-ui.version>2.1.0</springdoc-openapi-starter-webmvc-ui.version>
-		<maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
+		<maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
 
 		<springdoc-openapi-maven-plugin.version>1.4.0</springdoc-openapi-maven-plugin.version>
 		<zally-ruleset-zalando.version>2.1.0</zally-ruleset-zalando.version>
@@ -157,8 +157,7 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>${maven-compiler-plugin.version}</version>
 				<configuration>
-					<source>${java.version}</source>
-					<target>${java.version}</target>
+					<release>${java.version}</release>
 					<annotationProcessorPaths>
 						<path>
 							<groupId>org.mapstruct</groupId>
